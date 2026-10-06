@@ -2,7 +2,7 @@
   'use strict';
   const SPC = (root.SPC = root.SPC || {});
   // No adapter, fetch, or tab messaging: only cached records and directory handles.
-  async function writeVault({ directory, rootFolder, plan, vaultIndex = {}, saveIndex = async () => {}, signal, onProgress = () => {} }) {
+  async function writeVault({ directory, rootFolder, plan, vaultIndex = {}, saveIndex = async () => {}, signal, onProgress = () => {}, lang = 'zh-TW' }) {
     const v = SPC.vault;
     v.validateRoot(rootFolder);
     const manifest = { ...vaultIndex }, report = { created: 0, updated: 0, unchanged: 0, moved: 0, skipped: 0, skippedPaths: [], cancelled: false };
@@ -48,7 +48,7 @@
         const current = await read(path);
         if (owned?.path === path && current && current.hash !== owned.hash) { skip(path); return owned.path; }
         if (!other && (!current || (owned?.path === path && current.hash === owned.hash))) break;
-        path = v.collisionPath(base, entry.conv || { platform: 'pcs', id: 'index' }, ++attempt);
+        path = v.collisionPath(base, entry.conv || { platform: 'pcs', id: 'index' }, ++attempt, { lang });
       }
       const existing = await read(path);
       if (owned?.path === path && existing?.hash !== undefined && existing.hash !== owned.hash) { skip(path); return owned.path; }
@@ -66,14 +66,14 @@
       catch (error) { await stream.abort?.().catch(() => {}); throw error; }
       // Persist each completed file, including on cancellation or later I/O failure.
       await commit(entry.key, path, entry.hash);
-      if (!index && owned && owned.path !== path) {
+      if (owned && owned.path !== path) {
         const previous = await read(owned.path);
         if (previous && previous.hash === owned.hash) {
           const oldParent = await parent(owned.path);
           await oldParent.dir.removeEntry(oldParent.name);
           if (!index) report.moved++;
-        } else if (previous) { skip(owned.path); report.created++; }
-        else report.created++;
+        } else if (previous) { skip(owned.path); if (!index) report.created++; }
+        else if (!index) report.created++;
       } else if (!index) { if (existing) report.updated++; else report.created++; }
       return path;
     }
@@ -83,7 +83,7 @@
       if (signal?.aborted) { report.cancelled = true; break; }
       // Resolve citations against the actual paths, including protected edits and collision suffixes.
       if (entry.digest) {
-        const content = v.renderDigest(entry.digest, entries.filter(item => !item.digest));
+        const content = v.renderDigest(entry.digest, entries.filter(item => !item.digest), { lang });
         entry = { ...entry, content, hash: v.hashContent(content) };
       }
       const path = await write(entry);
@@ -91,8 +91,12 @@
       onProgress({ done: ++done, total });
     }
     if (!signal?.aborted) {
-      const key = '@index:' + rootFolder, content = v.renderIndex(entries);
-      await write({ key, path: manifest[key]?.path || `${rootFolder}/${v.INDEX}`, content, hash: v.hashContent(content) }, true);
+      const key = '@index:' + rootFolder, content = v.renderIndex(entries, { lang });
+      const basePath = `${rootFolder}/${v.labels(lang).index}`, oldPath = manifest[key]?.path;
+      // Keep collision allocations in this language, but move the same manifest key on a language switch.
+      const attempt = Number(oldPath?.match(/ (\d+)\)\.md$/)?.[1] || 1);
+      const path = oldPath === v.collisionPath(basePath, { platform: 'pcs', id: 'index' }, attempt) ? oldPath : basePath;
+      await write({ key, path, basePath, content, hash: v.hashContent(content) }, true);
       onProgress({ done: ++done, total });
     } else report.cancelled = true;
     return { ...report, vaultIndex: manifest };
@@ -122,7 +126,7 @@
     const rootFolder = $('#vault-root').value, scope = $('#vault-scope').value;
     SPC.vault.validateRoot(rootFolder);
     if (!['pinnedOrFiled', 'all', 'withContent'].includes(scope)) throw new Error('vaultInvalidScope');
-    return { rootFolder, scope };
+    return { rootFolder, scope, lang: state.settings.lang };
   }
   const restricted = error => ['SecurityError', 'NotAllowedError'].includes(error.name);
   const vaultError = error => new Error(t(error.message?.startsWith('vault') ? error.message : 'vaultIOError'));
@@ -179,7 +183,7 @@
         if (zip) {
           SPC.panel.checkCancelled(signal);
           const entries = plan.entries.map(entry => ({ ...entry, path: entry.path.slice(settings.rootFolder.length + 1) }));
-          const files = [...plan.entries, { path: `${settings.rootFolder}/${SPC.vault.INDEX}`, content: SPC.vault.renderIndex(entries) }];
+          const files = [...plan.entries, { path: `${settings.rootFolder}/${SPC.vault.labels(settings.lang).index}`, content: SPC.vault.renderIndex(entries, { lang: settings.lang }) }];
           SPC.panel.download(SPC.vault.buildZip(files), settings.rootFolder, 'zip'); SPC.panel.status('vaultZipDone');
         } else {
           result = await writeVault({ directory: saved.handle, ...settings, plan, vaultIndex: saved.vaultIndex, signal,

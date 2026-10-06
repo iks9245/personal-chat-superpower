@@ -4,13 +4,29 @@
   const conversation = SPC.conversation || require('./conversation.js');
   const search = SPC.search || require('./search.js');
   const platforms = SPC.platforms || require('./platforms.js').platforms;
-  const DEFAULT_ROOT = 'AI 對話', INDEX = '索引.md';
+  const DEFAULT_ROOT = 'AI 對話';
+  const LABELS = {
+    'zh-TW': {
+      index: '索引.md', weeklyFolder: '週報', weeklyTitle: '週報 ', unfiled: '未分類', unnamed: '未命名',
+      summary: '## 摘要', conversation: '## 對話', user: '### 🧑 你',
+      bodyMissing: '（內文尚未下載。可在擴充功能中匯出或使用背景補摘要。）',
+      weeklyReviews: '## 週報', weeklyConversations: '## 本週對話', sourceOpen: '（', sourceClose: '）'
+    },
+    en: {
+      index: 'Index.md', weeklyFolder: 'Weekly', weeklyTitle: 'Weekly review ', unfiled: 'Unfiled', unnamed: 'Untitled',
+      summary: '## Summary', conversation: '## Conversation', user: '### 🧑 You',
+      bodyMissing: '(Body not downloaded yet. Export it from the extension or enable background summaries.)',
+      weeklyReviews: '## Weekly reviews', weeklyConversations: '## Conversations this week', sourceOpen: ' (', sourceClose: ')'
+    }
+  };
+  const labels = (lang = 'zh-TW') => LABELS[lang === 'en' ? 'en' : 'zh-TW'];
+  const INDEX = labels().index;
   const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-  function safeSegment(text) {
+  function safeSegment(text, { lang = 'zh-TW' } = {}) {
     let value = String(text ?? '').replace(/[/\\:*?"<>|#^\[\]\x00-\x1f\x7f-\x9f]/g, '').replace(/\s+/g, ' ').trim().replace(/^[. ]+/, '').slice(0, 80).replace(/[. ]+$/, '');
     // Windows device names are reserved even when followed by an extension.
     if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(value)) value = '_' + value.slice(0, 79);
-    return value || '未命名';
+    return value || labels(lang).unnamed;
   }
   function validateRoot(value = DEFAULT_ROOT) {
     if (typeof value !== 'string' || !value || value !== safeSegment(value)) throw new Error('vaultInvalidRoot');
@@ -19,17 +35,17 @@
   const pathKey = path => path.normalize('NFD').toLowerCase();
   const platformOf = conv => conv.platform || conv.key.split(':')[0];
   const folderOf = (meta, folders) => folders.find(folder => folder.id === meta?.folderId);
-  function collisionPath(path, conv, attempt = 1) {
+  function collisionPath(path, conv, attempt = 1, { lang = 'zh-TW' } = {}) {
     if (!attempt) return path;
-    const suffix = ` (${safeSegment(platformOf(conv))} ${safeSegment(String(conv.id).slice(0, 6))}${attempt > 1 ? ' ' + attempt : ''})`;
+    const suffix = ` (${safeSegment(platformOf(conv), { lang })} ${safeSegment(String(conv.id).slice(0, 6), { lang })}${attempt > 1 ? ' ' + attempt : ''})`;
     const slash = path.lastIndexOf('/');
     return path.slice(0, slash + 1) + path.slice(slash + 1, -3).slice(0, Math.max(1, 80 - suffix.length)) + suffix + '.md';
   }
   // Optional occupied Map is shared by the planner; keys are canonical paths, values conversation keys.
-  function notePath(conv, meta = {}, folders = [], rootFolder = DEFAULT_ROOT, occupied = new Map()) {
-    const base = `${validateRoot(rootFolder)}/${safeSegment(folderOf(meta, folders)?.name || '未分類')}/${safeSegment(conversation.displayTitle(conv, meta))}.md`;
+  function notePath(conv, meta = {}, folders = [], rootFolder = DEFAULT_ROOT, occupied = new Map(), { lang = 'zh-TW' } = {}) {
+    const base = `${validateRoot(rootFolder)}/${safeSegment(folderOf(meta, folders)?.name || labels(lang).unfiled, { lang })}/${safeSegment(conversation.displayTitle(conv, meta), { lang })}.md`;
     let path = base, attempt = 0;
-    while (occupied.has(pathKey(path)) && occupied.get(pathKey(path)) !== conv.key) path = collisionPath(base, conv, ++attempt);
+    while (occupied.has(pathKey(path)) && occupied.get(pathKey(path)) !== conv.key) path = collisionPath(base, conv, ++attempt, { lang });
     return path;
   }
   function obsidianTag(tag) {
@@ -57,7 +73,8 @@
     const shift = Math.max(0, minLevel - shallowest); fence = null;
     return shift ? scan((line, heading) => '#'.repeat(Math.min(6, heading[1].length + shift)) + (heading[2] || '')).join('\n') : String(text);
   }
-  function renderNote(conv, meta = {}, { folders = [], platformLabel } = {}) {
+  function renderNote(conv, meta = {}, { folders = [], platformLabel, lang = 'zh-TW' } = {}) {
+    const l = labels(lang);
     const platform = platformOf(conv), folder = folderOf(meta, folders), title = conversation.displayTitle(conv, meta);
     const lines = ['---', `title: ${quote(title)}`];
     if (meta.customTitle) lines.push(`aliases: [${quote(meta.originalTitle ?? conv.title)}]`);
@@ -67,29 +84,31 @@
     lines.push(`tags: [${[...new Set((meta.tags || []).map(obsidianTag).filter(Boolean))].map(quote).join(', ')}]`, `pinned: ${meta.pinned === true}`);
     if (conv.summary?.text) lines.push(`summary_model: ${quote(conv.summary.model)}`);
     lines.push('exported_by: personal-chat-superpower', '---', '');
-    if (conv.summary?.text) lines.push('## 摘要', '', nestHeadings(conv.summary.text, 3), '');
-    lines.push('## 對話', '');
+    if (conv.summary?.text) lines.push(l.summary, '', nestHeadings(conv.summary.text, 3), '');
+    lines.push(l.conversation, '');
     const messages = (conv.messages || []).filter(message => ['user', 'assistant'].includes(message.role) && message.text);
-    if (!messages.length) lines.push('（內文尚未下載。可在擴充功能中匯出或使用背景補摘要。）', '');
-    for (const message of messages) lines.push(message.role === 'user' ? '### 🧑 你' : `### 🤖 ${platformLabel || platforms[platform]?.label || platform}`, '', nestHeadings(message.text, 4), '');
+    if (!messages.length) lines.push(l.bodyMissing, '');
+    for (const message of messages) lines.push(message.role === 'user' ? l.user : `### 🤖 ${platformLabel || platforms[platform]?.label || platform}`, '', nestHeadings(message.text, 4), '');
     return lines.join('\n');
   }
   const linkLabel = text => String(text).replace(/[\r\n\u2028\u2029]+/g, ' ').replace(/[|\[\]]/g, '');
-  function renderDigest(digest, notes = []) {
-    const lines = ['---', `title: ${quote('週報 ' + digest.week)}`, 'type: weekly-review', `week: ${quote(digest.week)}`,
+  function renderDigest(digest, notes = [], { lang = 'zh-TW' } = {}) {
+    const l = labels(lang);
+    const lines = ['---', `title: ${quote(l.weeklyTitle + digest.week)}`, 'type: weekly-review', `week: ${quote(digest.week)}`,
       `start: ${quote(localDay(digest.start))}`, `end: ${quote(localDay(digest.end))}`, `model: ${quote(digest.model)}`,
-      'exported_by: personal-chat-superpower', '---', '', nestHeadings(digest.text, 2), '', '## 本週對話', ''];
+      'exported_by: personal-chat-superpower', '---', '', nestHeadings(digest.text, 2), '', l.weeklyConversations, ''];
     digest.sources.forEach((source, index) => {
       const note = notes.find(entry => entry.key === source.key), title = linkLabel(source.title);
-      lines.push(`${index + 1}. ` + (note ? `[[${note.path.replace(/\.md$/, '')}|${title}]]` : `${title}（${linkLabel(platforms[source.platform]?.label || source.platform)}）`));
+      lines.push(`${index + 1}. ` + (note ? `[[${note.path.replace(/\.md$/, '')}|${title}]]` : `${title}${l.sourceOpen}${linkLabel(platforms[source.platform]?.label || source.platform)}${l.sourceClose}`));
     });
     return lines.join('\n') + '\n';
   }
-  function renderIndex(entries) {
+  function renderIndex(entries, { lang = 'zh-TW' } = {}) {
+    const l = labels(lang);
     const groups = new Map(), lines = ['---', 'exported_by: personal-chat-superpower', '---', ''];
-    for (const entry of entries.filter(entry => !entry.digest)) { const folder = entry.folder || '未分類'; if (!groups.has(folder)) groups.set(folder, []); groups.get(folder).push(entry); }
+    for (const entry of entries.filter(entry => !entry.digest)) { const folder = entry.folder || l.unfiled; if (!groups.has(folder)) groups.set(folder, []); groups.get(folder).push(entry); }
     const label = text => String(text).replace(/[\r\n\u2028\u2029]+/g, ' ').replace(/[|\[\]]/g, '');
-    for (const folder of [...groups.keys()].sort((a, b) => a === b ? 0 : a === '未分類' ? 1 : b === '未分類' ? -1 : compare(a, b))) {
+    for (const folder of [...groups.keys()].sort((a, b) => a === b ? 0 : a === l.unfiled ? 1 : b === l.unfiled ? -1 : compare(a, b))) {
       lines.push(`## ${label(folder)}`, '');
       for (const entry of groups.get(folder).sort((a, b) => (b.updated || 0) - (a.updated || 0) || compare(a.path, b.path))) {
         lines.push(`- [[${entry.path.replace(/\.md$/, '')}|${label(entry.title)}]]`);
@@ -98,8 +117,8 @@
     }
     const reviews = entries.filter(entry => entry.digest).sort((a, b) => compare(b.digest.week, a.digest.week));
     if (reviews.length) {
-      lines.push('## 週報', '');
-      for (const entry of reviews) lines.push(`- [[${entry.path.replace(/\.md$/, '')}|週報 ${entry.digest.week}]]`);
+      lines.push(l.weeklyReviews, '');
+      for (const entry of reviews) lines.push(`- [[${entry.path.replace(/\.md$/, '')}|${l.weeklyTitle}${entry.digest.week}]]`);
       lines.push('');
     }
     return lines.join('\n');
@@ -111,36 +130,37 @@
     return search.hash(text);
   }
   const hashContent = content => hashBytes(new TextEncoder().encode(content));
-  function planExport({ conversations, digests = [], meta = {}, folders = [], rootFolder = DEFAULT_ROOT, vaultIndex = {}, scope = 'pinnedOrFiled' }) {
+  function planExport({ conversations, digests = [], meta = {}, folders = [], rootFolder = DEFAULT_ROOT, vaultIndex = {}, scope = 'pinnedOrFiled', lang = 'zh-TW' }) {
+    const l = labels(lang);
     validateRoot(rootFolder);
     if (!['pinnedOrFiled', 'all', 'withContent'].includes(scope)) throw new Error('vaultInvalidScope');
     const occupied = new Map(Object.entries(vaultIndex).map(([key, value]) => [pathKey(value.path), key]));
     const reviews = digests.filter(digest => !digest.partial && /^\d{4}-W\d{2}$/.test(digest.week)).sort((a, b) => compare(b.week, a.week));
-    for (const digest of reviews) occupied.set(pathKey(`${rootFolder}/週報/${digest.week}.md`), 'digest:' + digest.week);
+    for (const digest of reviews) occupied.set(pathKey(`${rootFolder}/${l.weeklyFolder}/${digest.week}.md`), 'digest:' + digest.week);
     const writes = [], moves = [], entries = []; let unchanged = 0;
     for (const conv of [...conversations].sort((a, b) => compare(a.key, b.key))) {
       const m = meta[conv.key] || {};
       if (scope === 'pinnedOrFiled' && !m.pinned && !folderOf(m, folders)) continue;
       if (scope === 'withContent' && !conv.summary?.text?.trim() && !(conv.messages || []).some(message => ['user', 'assistant'].includes(message.role) && message.text?.trim())) continue;
-      let path = notePath(conv, m, folders, rootFolder, occupied);
-      const old = vaultIndex[conv.key], base = notePath(conv, m, folders, rootFolder);
+      let path = notePath(conv, m, folders, rootFolder, occupied, { lang });
+      const old = vaultIndex[conv.key], base = notePath(conv, m, folders, rootFolder, undefined, { lang });
       // Retain a previously allocated suffix even if its former competitor disappeared.
       if (old && pathKey(old.path) === pathKey(path)) path = old.path;
       else if (old) {
         const attempt = Number(old.path.match(/ (\d+)\)\.md$/)?.[1] || 1);
-        if (old.path === collisionPath(base, conv, attempt)) path = old.path;
+        if (old.path === collisionPath(base, conv, attempt, { lang })) path = old.path;
       }
       occupied.set(pathKey(path), conv.key);
-      const content = renderNote(conv, m, { folders }), hash = hashContent(content);
-      const entry = { key: conv.key, path, basePath: base, content, hash, title: conversation.displayTitle(conv, m), folder: folderOf(m, folders)?.name || '未分類', updated: conv.updateTime, conv };
+      const content = renderNote(conv, m, { folders, lang }), hash = hashContent(content);
+      const entry = { key: conv.key, path, basePath: base, content, hash, title: conversation.displayTitle(conv, m), folder: folderOf(m, folders)?.name || l.unfiled, updated: conv.updateTime, conv };
       entries.push(entry);
       if (old?.path === path && old.hash === hash) unchanged++; else writes.push({ key: conv.key, path, content, hash });
       if (old && old.path !== path) moves.push({ key: conv.key, from: old.path, to: path });
     }
     for (const digest of reviews) {
-      const key = 'digest:' + digest.week, path = `${rootFolder}/週報/${digest.week}.md`, old = vaultIndex[key];
-      const content = renderDigest(digest, entries.map(entry => ({ ...entry, path: entry.path.slice(rootFolder.length + 1) }))), hash = hashContent(content);
-      const entry = { key, path, content, hash, digest, conv: { platform: 'digest', id: digest.week }, title: '週報 ' + digest.week };
+      const key = 'digest:' + digest.week, path = `${rootFolder}/${l.weeklyFolder}/${digest.week}.md`, old = vaultIndex[key];
+      const content = renderDigest(digest, entries.map(entry => ({ ...entry, path: entry.path.slice(rootFolder.length + 1) })), { lang }), hash = hashContent(content);
+      const entry = { key, path, content, hash, digest, conv: { platform: 'digest', id: digest.week }, title: l.weeklyTitle + digest.week };
       entries.push(entry);
       if (old?.path === path && old.hash === hash) unchanged++; else writes.push({ key, path, content, hash });
       if (old && old.path !== path) moves.push({ key, from: old.path, to: path });
@@ -174,6 +194,6 @@
     for (const part of [...locals, ...central, end]) { zip.set(part, position); position += part.length; }
     return zip;
   }
-  SPC.vault = { DEFAULT_ROOT, INDEX, safeSegment, validateRoot, pathKey, collisionPath, notePath, obsidianTag, nestHeadings, renderNote, renderDigest, renderIndex, hashBytes, hashContent, planExport, crc32, buildZip };
+  SPC.vault = { DEFAULT_ROOT, INDEX, labels, safeSegment, validateRoot, pathKey, collisionPath, notePath, obsidianTag, nestHeadings, renderNote, renderDigest, renderIndex, hashBytes, hashContent, planExport, crc32, buildZip };
   if (typeof module !== 'undefined' && module.exports) module.exports = SPC.vault;
 })(globalThis);

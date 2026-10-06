@@ -1,0 +1,113 @@
+{
+  "input": {
+    "conversations": [
+      {
+        "key": "chatgpt:sample1",
+        "id": "sample1",
+        "platform": "chatgpt",
+        "title": "Original",
+        "createTime": null,
+        "updateTime": null,
+        "summary": {
+          "text": "# Topic\n\nSummary text.",
+          "model": "example-model"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "text": "# Question\n\nExample question."
+          },
+          {
+            "role": "assistant",
+            "text": "Example answer."
+          }
+        ]
+      },
+      {
+        "key": "chatgpt:sample2",
+        "id": "sample2",
+        "platform": "chatgpt",
+        "title": "Example",
+        "messages": []
+      },
+      {
+        "key": "chatgpt:sample3",
+        "id": "sample3",
+        "platform": "chatgpt",
+        "title": "Example",
+        "messages": []
+      },
+      {
+        "key": "chatgpt:sample4",
+        "id": "sample4",
+        "platform": "chatgpt",
+        "title": "///",
+        "messages": []
+      }
+    ],
+    "scope": "all",
+    "folders": [
+      {
+        "id": "work",
+        "name": "Work"
+      }
+    ],
+    "meta": {
+      "chatgpt:sample1": {
+        "customTitle": "Example note",
+        "folderId": "work",
+        "tags": [
+          "example"
+        ],
+        "pinned": true
+      }
+    },
+    "digests": [
+      {
+        "week": "2026-W41",
+        "start": null,
+        "end": null,
+        "model": "example-model",
+        "text": "# Review\n\nExample review.",
+        "sources": [
+          {
+            "key": "chatgpt:sample2",
+            "title": "Example",
+            "platform": "chatgpt"
+          },
+          {
+            "key": "claude:missing",
+            "title": "Other example",
+            "platform": "claude"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": [
+    {
+      "path": "AI 對話/Work/Example note.md",
+      "content": "---\ntitle: \"Example note\"\naliases: [\"Original\"]\nplatform: \"chatgpt\"\nsource: \"https://chatgpt.com/c/sample1\"\ncreated: \"\"\nupdated: \"\"\nfolder: \"Work\"\ntags: [\"example\"]\npinned: true\nsummary_model: \"example-model\"\nexported_by: personal-chat-superpower\n---\n\n## 摘要\n\n### Topic\n\nSummary text.\n\n## 對話\n\n### 🧑 你\n\n#### Question\n\nExample question.\n\n### 🤖 ChatGPT\n\nExample answer.\n"
+    },
+    {
+      "path": "AI 對話/未分類/Example.md",
+      "content": "---\ntitle: \"Example\"\nplatform: \"chatgpt\"\nsource: \"https://chatgpt.com/c/sample2\"\ncreated: \"\"\nupdated: \"\"\ntags: []\npinned: false\nexported_by: personal-chat-superpower\n---\n\n## 對話\n\n（內文尚未下載。可在擴充功能中匯出或使用背景補摘要。）\n"
+    },
+    {
+      "path": "AI 對話/未分類/Example (chatgpt sample).md",
+      "content": "---\ntitle: \"Example\"\nplatform: \"chatgpt\"\nsource: \"https://chatgpt.com/c/sample3\"\ncreated: \"\"\nupdated: \"\"\ntags: []\npinned: false\nexported_by: personal-chat-superpower\n---\n\n## 對話\n\n（內文尚未下載。可在擴充功能中匯出或使用背景補摘要。）\n"
+    },
+    {
+      "path": "AI 對話/未分類/未命名.md",
+      "content": "---\ntitle: \"///\"\nplatform: \"chatgpt\"\nsource: \"https://chatgpt.com/c/sample4\"\ncreated: \"\"\nupdated: \"\"\ntags: []\npinned: false\nexported_by: personal-chat-superpower\n---\n\n## 對話\n\n（內文尚未下載。可在擴充功能中匯出或使用背景補摘要。）\n"
+    },
+    {
+      "path": "AI 對話/週報/2026-W41.md",
+      "content": "---\ntitle: \"週報 2026-W41\"\ntype: weekly-review\nweek: \"2026-W41\"\nstart: \"\"\nend: \"\"\nmodel: \"example-model\"\nexported_by: personal-chat-superpower\n---\n\n## Review\n\nExample review.\n\n## 本週對話\n\n1. [[未分類/Example|Example]]\n2. Other example（Claude）\n"
+    },
+    {
+      "path": "AI 對話/索引.md",
+      "content": "---\nexported_by: personal-chat-superpower\n---\n\n## Work\n\n- [[Work/Example note|Example note]]\n\n## 未分類\n\n- [[未分類/Example (chatgpt sample)|Example]]\n- [[未分類/Example|Example]]\n- [[未分類/未命名|///]]\n\n## 週報\n\n- [[週報/2026-W41|週報 2026-W41]]\n"
+    }
+  ]
+}
