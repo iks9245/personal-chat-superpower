@@ -82,7 +82,7 @@
     const history = replace ? qa.turns.slice(0, -1) : qa.turns;
     qa.hint = null; qa.draft = turn; SPC.panel.renderQA(); SPC.panel.setProgress('qaAnswering'); let frame = null;
     try {
-      const answer = await SPC.llm.chat(config, { stream: true, signal, messages: SPC.rag.buildQAMessages({ question, excerpts, history }), onText: text => {
+      const answer = await SPC.llm.chat(config, { stream: true, signal, messages: SPC.rag.buildQAMessages({ question, excerpts, history, lang: state.settings.lang }), onText: text => {
         if (signal.aborted) return; turn.answer = text;
         if (frame !== null) return;
         frame = requestAnimationFrame(() => { frame = null; if (!signal.aborted && qa.draft === turn) SPC.panel.renderQAAnswer(turn, true); });

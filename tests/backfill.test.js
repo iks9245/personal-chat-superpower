@@ -300,3 +300,44 @@ test('background preflight, summaries, embeddings and automatic digests record e
   assert.equal(h.session.llmStatus.ok, true); assert.equal(h.sessionWrites.filter(write => write.patch.llmStatus).length, 7);
   await h.worker.tick(); assert.equal(fetches.length, 7);
 });
+
+for (const lang of ['zh-TW', 'en']) test(`manual and background summaries send identical ${lang} messages and content-only hashes`, async () => {
+  const h = harness(); h.data.settings.lang = lang;
+  await h.worker.tick();
+  const saved = h.records.get('chatgpt:a'), backgroundMessages = h.calls.find(call => call.messages).messages;
+  assert.deepEqual(backgroundMessages, summary.messages(saved, { lang }));
+  assert.equal(backgroundMessages[0].content.includes('in English'), lang === 'en');
+  const hash = saved.summary.sourceHash;
+  assert.equal(hash, h.context.SPC.search.hash(summary.content(saved)));
+  const panel = h.context.SPC.panel = {
+    state: { settings: await h.context.SPC.store.get('settings'), summaryDrafts: new Map(), summaryNodes: new Map() },
+    localOperation: action => action(new AbortController().signal), setProgress() {}, checkCancelled() {},
+    renderConversations() {}, writeCache: action => action(), status() {}
+  };
+  h.context.SPC.db = h.db;
+  h.context.SPC.llm = { ...h.llm, normalizeBaseUrl: value => value };
+  vm.runInContext(fs.readFileSync(require.resolve('../src/sidepanel/local-llm.js'), 'utf8'), h.context);
+  await panel.summarize(saved);
+  assert.deepEqual(h.calls.filter(call => call.messages).at(-1).messages, backgroundMessages);
+  assert.equal(h.records.get(saved.key).summary.sourceHash, hash);
+  panel.state.settings.lang = lang === 'en' ? 'zh-TW' : 'en';
+  await panel.summarize(saved);
+  assert.equal(h.records.get(saved.key).summary.sourceHash, hash);
+  assert.equal(h.calls.filter(call => call.messages).at(-1).messages[1].content, backgroundMessages[1].content);
+  assert.notEqual(h.calls.filter(call => call.messages).at(-1).messages[0].content, backgroundMessages[0].content);
+  assert.equal(h.gets().length, 1, 'manual summaries use the cached conversation');
+});
+
+for (const lang of ['zh-TW', 'en']) test(`automatic weekly reviews use stored ${lang} with one chat and no site requests`, async () => {
+  const h = harness(); h.data.settings.lang = lang; h.data.settings.digest.autoWeekly = true; h.data.backfill.enabled = false;
+  const week = h.context.SPC.digest.dueWeek(h.now()), previousWeek = h.context.SPC.digest.previousWeek(week);
+  h.digests.set(previousWeek, { week: previousWeek, text: 'Rust references [9]' });
+  await h.worker.tick();
+  const calls = h.calls.filter(call => call.messages);
+  assert.equal(calls.length, 1); assert.equal(h.calls.filter(call => call.type).length, 0);
+  assert.equal(calls[0].messages[0].content, h.context.SPC.digest.buildDigestMessages({ week, items: [], lang })[0].content);
+  assert.equal(calls[0].messages[0].content.includes('English Markdown'), lang === 'en');
+  assert.ok(calls[0].messages[1].content.includes('Rust references')); assert.doesNotMatch(calls[0].messages[1].content, /\[9\]/);
+  assert.ok(h.digests.has(week));
+  await h.worker.tick(); assert.equal(h.calls.filter(call => call.messages).length, 1);
+});

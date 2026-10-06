@@ -41,7 +41,7 @@
       draft = { week, partial, text: '', model: config.chatModel, sources: [] }; renderDigests(); SPC.panel.setProgress('digestGenerating');
       let frame = null;
       try {
-        selected = await SPC.digest.generate({ week, partial, config, db: SPC.db, store: SPC.store, llm: SPC.llm, signal, onText: text => {
+        selected = await SPC.digest.generate({ week, partial, config, lang: state.settings.lang, db: SPC.db, store: SPC.store, llm: SPC.llm, signal, onText: text => {
           if (signal.aborted) return; draft.text = text;
           if (frame !== null) return;
           frame = requestAnimationFrame(() => { frame = null; if (!signal.aborted && draft) renderDigests(); });

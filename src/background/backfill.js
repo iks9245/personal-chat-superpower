@@ -43,9 +43,9 @@
         if (await busy()) { await save({ lastStatus: 'skippedBusy' }); return; }
         const probe = async () => {
           try {
-            const config = (await store.get('settings', store.defaults)).llm;
+            const settings = await store.get('settings', store.defaults), config = settings.llm;
             if (!config.baseUrl || !config.chatModel || !(await llm.listModels(config)).includes(config.chatModel)) throw new Error('unavailable');
-            return config;
+            return settings;
           } catch (_) { await save({ lastStatus: 'llmUnavailable' }); return null; }
         };
         const automatic = async () => {
@@ -53,13 +53,13 @@
           if (!week || (await store.get('settings', store.defaults)).digest.autoWeekly === false || await db.digests.get(week)) return;
           const key = 'digest-attempt:' + week, attempt = await db.keyval.get(key) || {};
           if (attempt.done || attempt.count >= 3 || attempt.day === SPC.backfill.localDay(now())) return;
-          const config = await probe(); if (!config) return;
+          const settings = await probe(); if (!settings) return;
           check();
           if (await busy() || (await store.get('settings', store.defaults)).digest.autoWeekly === false || await db.digests.get(week)) return;
           const reserved = { count: (attempt.count || 0) + 1, day: SPC.backfill.localDay(now()) };
           await db.keyval.set(key, reserved);
           try {
-            await SPC.digest.generate({ week, db, store, llm, config, signal: controller.signal, now });
+            await SPC.digest.generate({ week, db, store, llm, config: settings.llm, lang: settings.lang, signal: controller.signal, now });
             await db.keyval.set(key, { ...reserved, done: true });
             await store.set('digestUpdatedAt', now());
           } catch (error) {
@@ -83,7 +83,8 @@
         }
         const platform = listPlatform || candidate.platform || SPC.platformOfKey(candidate.key), tab = tabs.get(platform)[0];
         if (listPlatform) candidate = undefined;
-        const config = await probe(); if (!config) return;
+        const settings = await probe(); if (!settings) return;
+        const { llm: config, lang } = settings;
         check();
         // Recheck controls after the potentially slow model probe, immediately before dispatch.
         state = SPC.backfill.rollover(await store.get('backfill'), now());
@@ -134,7 +135,7 @@
           await db.put({ ...record, summary: { ...current.summary, createdAt: now() } });
           await save({ lastStatus: 'refreshedUnchanged' }); return;
         }
-        const text = llm.stripThinking(await llm.chat(config, { stream: true, signal: controller.signal, messages: SPC.summary.messages(record) }));
+        const text = llm.stripThinking(await llm.chat(config, { stream: true, signal: controller.signal, messages: SPC.summary.messages(record, { lang }) }));
         check(); if (!text.trim()) throw new Error('empty summary');
         // Do not resurrect a record deleted by the user during generation.
         const latest = await db.get(candidate.key); if (!latest) return;

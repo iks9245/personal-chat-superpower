@@ -54,7 +54,7 @@
       state.summaryDrafts.set(conv.key, ''); SPC.panel.renderConversations();
       let frame = null;
       try {
-        const text = await SPC.llm.chat(config, { stream: true, signal, messages: SPC.summary.messages(record), onText: text => {
+        const text = await SPC.llm.chat(config, { stream: true, signal, messages: SPC.summary.messages(record, { lang: state.settings.lang }), onText: text => {
           if (signal.aborted) return; state.summaryDrafts.set(conv.key, text);
           if (frame !== null) return;
           frame = requestAnimationFrame(() => {

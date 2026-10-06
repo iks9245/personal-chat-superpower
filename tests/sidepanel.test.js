@@ -548,3 +548,44 @@ test('operation controller publishes, refreshes and clears the two-minute panel 
   await h.localOperation(async () => { assert.ok(h.session.panelBusy); throw new Error('test'); });
   await h.tick(0); assert.equal(h.session.panelBusy, undefined);
 });
+
+for (const lang of ['zh-TW', 'en']) test(`panel Q&A and suggestions pass settings.lang=${lang} to the real prompt builders`, async () => {
+  const h = harness([record('rust', 1)]); await qaReady(h); h.state.settings.lang = lang;
+  const calls = [], embeds = [];
+  h.context.SPC.llm.embed = async (_, inputs) => { embeds.push(inputs); return inputs.map(() => [1, 0]); };
+  h.context.SPC.llm.chat = async (_, options) => { calls.push(plain(options.messages)); return 'Answer [1]'; };
+  await h.askQuestion();
+  assert.equal(calls.length, 1); assert.equal(embeds.length, 1);
+  assert.equal(calls[0][0].content, h.context.SPC.rag.buildQAMessages({ question: '', excerpts: [], lang })[0].content);
+  assert.equal(calls[0][0].content.includes('in English'), lang === 'en');
+  h.context.SPC.llm.chat = async (_, options) => { calls.push(plain(options.messages)); return '{"items":[]}'; };
+  const options = { titles: true, folders: true, tags: true };
+  await h.generateSuggestions(options);
+  assert.equal(calls.length, 2); assert.equal(h.calls.length, 0);
+  assert.equal(calls[1][0].content, h.suggestionPrompt(options, lang));
+  assert.equal(calls[1][0].content.includes('in English'), lang === 'en');
+});
+
+for (const lang of ['zh-TW', 'en']) test(`panel manual weekly review passes settings.lang=${lang} through generate to chat`, async () => {
+  const h = harness(); enableLLM(h); h.state.settings.lang = lang;
+  const digest = require('../src/shared/digest.js'), week = '2026-W41', calls = [], saved = [];
+  h.context.SPC.digest = digest;
+  const conv = { ...record('rust', 1), updateTime: digest.weekRange(week).start, summary: { text: 'TODO: compare mutable references.' } };
+  h.records.set(conv.key, conv);
+  h.context.chrome.storage.session.get = async () => ({});
+  h.context.SPC.db.digests = { getAll: async () => saved, put: async value => saved.push(value) };
+  h.context.SPC.store.set = async () => {};
+  h.context.SPC.llm.chat = async (_, options) => { calls.push(plain(options.messages)); return 'Weekly review'; };
+  // Supply inert render nodes; the real panel generation and shared digest orchestration run unchanged.
+  for (const id of ['digest-list', 'digest-answer']) h.node('#' + id).replaceChildren = () => {};
+  h.node('#digest-answer').append = () => {};
+  h.context.SPC.panel.button = () => ({ setAttribute() {}, append() {} });
+  h.context.SPC.panel.el = () => ({ append() {} });
+  h.context.SPC.markdown = { render: () => ({}) };
+  h.context.SPC.rag = { ...h.context.SPC.rag, citationButtons: () => {} };
+  await h.generateDigest(week);
+  assert.equal(calls.length, 1); assert.equal(saved.length, 1); assert.equal(h.calls.length, 0);
+  assert.equal(calls[0][0].content, digest.buildDigestMessages({ week, items: [], lang })[0].content);
+  assert.equal(calls[0][0].content.includes('English Markdown'), lang === 'en');
+  assert.ok(calls[0][1].content.includes('TODO: compare mutable references.'));
+});
