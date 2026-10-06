@@ -70,7 +70,12 @@
         const n = Number(match[1]); if (n > count) continue;
         if (match.index > from) node.insertBefore(doc.createTextNode(text.slice(from, match.index)), child);
         const button = doc.createElement('button'); button.type = 'button'; button.className = 'qa-citation'; button.textContent = match[0];
-        button.addEventListener('click', () => open(n - 1)); node.insertBefore(button, child); from = match.index + match[0].length;
+        button.addEventListener('click', () => open(n - 1));
+        // Keep punctuation right after a citation on the same line as it ("file [1]." must not wrap as "file [1]" / ". It").
+        const end = match.index + match[0].length, punct = text.slice(end).match(/^[.,;:!?。，、；：！？)）]+/)?.[0] || '';
+        if (punct) { const group = doc.createElement('span'); group.className = 'cite-group'; group.append(button, doc.createTextNode(punct)); node.insertBefore(group, child); }
+        else node.insertBefore(button, child);
+        from = end + punct.length;
       }
       if (!from) continue;
       if (from < text.length) node.insertBefore(doc.createTextNode(text.slice(from)), child);

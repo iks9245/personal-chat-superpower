@@ -10,6 +10,17 @@
 
 為 ChatGPT 與 Claude 加上本機對話資料夾、標籤、釘選、Prompt 庫、全文搜尋、本機對話問答（local RAG）、匯出、oMLX 本地 LLM 輔助與自選背景補摘要（v0.4.0）。使用 Manifest V3、純 JavaScript classic scripts；零第三方依賴、無建置步驟。預設繁體中文，可即時切換 English。
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/list.png" width="200" alt="對話列表"><br><sub>資料夾、標籤、摘要</sub></td>
+    <td align="center"><img src="docs/screenshots/search.png" width="200" alt="語意搜尋"><br><sub>語意搜尋</sub></td>
+    <td align="center"><img src="docs/screenshots/qa.png" width="200" alt="附引用的問答"><br><sub>附引用的問答</sub></td>
+    <td align="center"><img src="docs/screenshots/digest.png" width="200" alt="每週回顧"><br><sub>每週回顧</sub></td>
+  </tr>
+</table>
+
+<sub>截圖使用虛構的示範對話；搜尋排序、問答與每週回顧由本地模型實際產生。</sub>
+
 ## 安裝
 
 1. 使用支援 Side Panel 的 Chrome 116 或更新版本。

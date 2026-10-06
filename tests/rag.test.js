@@ -60,3 +60,18 @@ test('chunk maintenance batches 32, skips unchanged, re-embeds changed hashes/mo
   const unchanged = batches.length; config.embeddingModel = 'next'; await run(); assert.ok(batches.length > unchanged); assert.ok([...rows.values()].every(row => row.model === 'next'));
   controller.abort(); await assert.rejects(run(), { name: 'AbortError' });
 });
+test('a citation keeps the punctuation right after it in one no-wrap group', () => {
+  const doc = { createTextNode: value => node(3, { nodeValue: value }), createElement: tag => node(1, { tagName: tag.toUpperCase(), className: '' }) };
+  function node(nodeType, props) {
+    const n = { nodeType, childNodes: [], ownerDocument: doc, ...props, addEventListener() {},
+      append(...items) { n.childNodes.push(...items); }, insertBefore(c, ref) { n.childNodes.splice(n.childNodes.indexOf(ref), 0, c); return c; },
+      removeChild(c) { n.childNodes.splice(n.childNodes.indexOf(c), 1); return c; },
+      get textContent() { return nodeType === 3 ? n.nodeValue : n.childNodes.map(c => c.textContent).join(''); }, set textContent(v) { n.childNodes = [doc.createTextNode(String(v))]; } };
+    return n;
+  }
+  const root = doc.createElement('p'); root.append(doc.createTextNode('Uses one file [1]. Then more [2] text'));
+  rag.citationButtons(root, 2, () => {});
+  const kinds = root.childNodes.map(c => c.nodeType === 3 ? 'text' : c.tagName + (c.className ? '.' + c.className : ''));
+  assert.deepEqual(kinds, ['text', 'SPAN.cite-group', 'text', 'BUTTON.qa-citation', 'text']);
+  assert.equal(root.childNodes[1].textContent, '[1].'); assert.equal(root.textContent, 'Uses one file [1]. Then more [2] text');
+});

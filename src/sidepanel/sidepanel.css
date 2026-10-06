@@ -14,7 +14,7 @@
 
 .review-row .grow{min-width:0;overflow-wrap:anywhere}.review-row .field{margin:6px 0}#editor-fields>.check{margin:10px 0}
 
-#qa-question{min-height:90px}.qa-citation{font-size:11px;padding:0 3px;margin:0 2px;color:var(--accent);vertical-align:baseline}#qa-sources ul{padding-left:18px}#qa-sources li{margin:5px 0}#qa-history{margin-bottom:10px}#qa-view-question{font-weight:600;overflow-wrap:anywhere}#qa-download{margin-bottom:12px}
+#qa-question{min-height:90px}.qa-citation{font-size:11px;padding:0 3px;margin:0 2px;color:var(--accent);vertical-align:baseline}#qa-sources ul{list-style:none;padding-left:0;margin:6px 0}#qa-sources li{margin:5px 0}#qa-sources li .title-button{display:block;width:100%;text-align:left}#qa-history{margin-bottom:10px}#qa-view-question{font-weight:600;overflow-wrap:anywhere}#qa-download{margin-bottom:12px}
 
 #diagnostic-results{list-style:none;padding:0}
 
@@ -66,3 +66,5 @@
 .digest-row[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
 .digest-week{display:flex;align-items:center;gap:8px;font-weight:600}
 #digest-actions{margin-top:12px}
+
+.cite-group{white-space:nowrap}
