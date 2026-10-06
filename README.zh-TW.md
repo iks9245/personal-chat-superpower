@@ -203,8 +203,7 @@ src/sidepanel/backfill.js       # 背景補摘要設定與即時統計
 src/shared/vault.js             # 純 Markdown／路徑／匯出規劃及 STORE ZIP
 src/sidepanel/vault.js          # Vault handle、檔案保護、設定與本機匯出
 src/sidepanel/main.js           # 依原順序綁定事件與啟動
-icons/{16,32,48,128}.png
-scripts/gen-icons.js
+icons/{16,32,48,128}.png        # 由 icons/icon.svg（16px 用 icon-16.svg）轉出
 tests/*.test.js
 tests/index.js
 package.json
@@ -214,12 +213,11 @@ README.md
 共用模組採 UMD 風格，classic script 掛載至 `globalThis.SPC`，Node 可用 `require()`。側欄模組採 IIFE，共用 `SPC.panel`，在 shared scripts 後依上列順序載入（core 最先、main 最後），不需要依賴或建置步驟。測試涵蓋純函式、搜尋回應正規化、結果合併、高亮跳脫、備份驗證及雙語字典；另用模擬 Chrome、IndexedDB、fetch 與時鐘驗證 adapter、標題同步、搜尋防抖/過期回應、匯出、限速與取消，不連線到 ChatGPT、Claude 或實際 oMLX；LLM 測試使用 mocked fetch。
 
 ```sh
-node scripts/gen-icons.js
 node --test tests/
 node -e "JSON.parse(require('node:fs').readFileSync('manifest.json', 'utf8')); console.log('manifest OK')"
 ```
 
-圖示產生器只使用 Node 內建 `fs`、`path`、`zlib`，自行編碼 PNG 與 CRC32；四種尺寸的產出已包含在目錄內。
+圖示原始檔為 `icons/icon.svg`（16px 另有筆畫加粗的 `icons/icon-16.svg`）；四種尺寸的 PNG 已包含在目錄內，修改 SVG 後需重新轉出 PNG。
 
 ## 規格補充與限制
 
