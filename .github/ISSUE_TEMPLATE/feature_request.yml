@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an idea or a new platform
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      description: Features stay local-first, send no data to third parties, and keep requests to chatgpt.com / claude.ai minimal.
+      options:
+        - label: My idea fits these principles (or I explained why it should be an exception).

@@ -2,6 +2,8 @@
 
 **English** · [繁體中文](README.zh-TW.md)
 
+[![Tests](https://github.com/iks9245/personal-chat-superpower/actions/workflows/test.yml/badge.svg)](https://github.com/iks9245/personal-chat-superpower/actions/workflows/test.yml) [![Latest release](https://img.shields.io/github/v/release/iks9245/personal-chat-superpower)](https://github.com/iks9245/personal-chat-superpower/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 A local-first Chrome extension that turns your ChatGPT and Claude history into a personal knowledge base — organized, searchable, summarized by **your own local LLM**, and exportable to **Obsidian**. No servers, no tracking, no accounts.
 
 > **Unofficial project, not affiliated with OpenAI or Anthropic.** It reads the undocumented web APIs of chatgpt.com and claude.ai, which can change or break at any time. Programmatic access may conflict with those services' terms of use — evaluate the risk for your own account before using it. Provided as-is under the MIT license.
@@ -43,8 +45,8 @@ Chat apps are great at answering and bad at remembering. Your best thinking ends
 
 ## Install
 
-1. Clone or download this repository.
-2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the repository folder.
+1. Download the latest `personal-chat-superpower-<version>.zip` from [Releases](https://github.com/iks9245/personal-chat-superpower/releases/latest) and unzip it (or clone this repository).
+2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the unzipped (or cloned) folder.
 3. Open chatgpt.com or claude.ai and click the extension icon to open the side panel. Press **Sync** to load your conversation titles.
 
 ### Optional: local LLM
@@ -77,6 +79,8 @@ npm test
 ```
 
 All site-specific assumptions live in `src/content/adapters/<site>.js`. When a site changes, run Diagnostics first — it names the function to fix. `SPEC.md` (Traditional Chinese) documents the contracts in detail.
+
+Found a bug? Run Settings → Diagnostics, copy the report and [open an issue](https://github.com/iks9245/personal-chat-superpower/issues/new/choose) — the report contains no titles, IDs or keys.
 
 Contributions are welcome — especially adapters for other platforms (Gemini), testing with other local LLM servers, and English UI polish. Please keep the core principles: local-first, no third-party requests, request-light, and no `innerHTML`.
 
