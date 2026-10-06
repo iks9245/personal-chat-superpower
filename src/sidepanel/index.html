@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <script defer src="../shared/ns.js"></script>
+  <script defer src="../shared/i18n.js"></script>
+  <script defer src="../shared/storage.js"></script>
+  <script defer src="../shared/llm.js"></script>
+  <script defer src="../shared/db.js"></script>
+  <script defer src="../shared/platforms.js"></script>
+  <script defer src="../shared/conversation.js"></script>
+  <script defer src="../shared/prompt-vars.js"></script>
+  <script defer src="../shared/search.js"></script>
+  <script defer src="../shared/rag.js"></script>
+  <script defer src="../shared/markdown.js"></script>
+  <script defer src="../shared/summary.js"></script>
+  <script defer src="../shared/digest.js"></script>
+  <script defer src="../shared/backfill.js"></script>
+  <script defer src="../shared/vault.js"></script>
+  <script defer src="core.js"></script>
+  <script defer src="conversations.js"></script>
+  <script defer src="local-llm.js"></script>
+  <script defer src="suggestions.js"></script>
+  <script defer src="prompts.js"></script>
+  <script defer src="qa.js"></script>
+  <script defer src="digest.js"></script>
+  <script defer src="settings.js"></script>
+  <script defer src="diagnostics.js"></script>
+  <script defer src="backfill.js"></script>
+  <script defer src="vault.js"></script>
+  <script defer src="main.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1 data-i18n="appName"></h1>
+    <div id="panel-health" class="panel-health"><button id="health-llm" type="button"></button><button id="health-backfill" type="button" hidden></button></div>
+    <nav role="tablist" data-i18n-aria="appName">
+      <button id="tab-conversations" role="tab" aria-controls="conversations" aria-selected="true" data-tab="conversations" data-i18n="conversations"></button>
+      <button id="tab-prompts" role="tab" aria-controls="prompts" aria-selected="false" tabindex="-1" data-tab="prompts" data-i18n="prompts"></button>
+      <button id="tab-qa" role="tab" aria-controls="qa" aria-selected="false" tabindex="-1" data-tab="qa" data-i18n="qa"></button>
+      <button id="tab-settings" role="tab" aria-controls="settings" aria-selected="false" tabindex="-1" data-tab="settings" data-i18n="settings"></button>
+    </nav>
+  </header>
+  <p id="tab-notice" class="notice" data-i18n="useSupported" hidden></p>
+  <p id="status" role="status" aria-live="polite" hidden></p>
+  <div class="operation-bar"><p id="sync-progress" role="status" hidden></p><button id="cancel-sync" data-i18n="cancel" hidden></button></div>
+  <dialog id="folder-manager" aria-labelledby="folder-manager-title">
+    <h2 id="folder-manager-title" data-i18n="manageFolders"></h2>
+    <div id="folder-manager-list"></div>
+    <button id="folder-manager-close" data-i18n="close"></button>
+  </dialog>
+  <main>
+    <section id="conversations" role="tabpanel" aria-labelledby="tab-conversations">
+      <div class="conversation-header">
+        <button id="sync" class="primary" data-i18n="sync"></button>
+        <select id="search-mode" data-i18n-aria="searchMode"><option value="keyword" data-i18n="keyword"></option><option value="semantic" data-i18n="semantic"></option></select>
+        <div class="menu-anchor">
+          <button id="conversation-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="conversation-menu" data-i18n-aria="moreActions">⋯</button>
+          <div id="conversation-menu" class="action-menu" role="menu" hidden>
+            <button id="export-current" role="menuitem" data-i18n="exportCurrent"></button>
+            <button id="toggle-multi-select" role="menuitem" data-i18n="multiSelect"></button>
+            <button id="suggest" role="menuitem" data-i18n="suggest"></button>
+            <button id="add-folder" role="menuitem" data-i18n="addFolder"></button>
+            <button id="quick-vault-export" role="menuitem" data-i18n="vaultTitle"></button>
+            <button id="manage-folders" role="menuitem" data-i18n="manageFolders"></button>
+          </div>
+        </div>
+      </div>
+      <input id="conversation-search" type="search" data-i18n-placeholder="searchConversations" data-i18n-aria="searchConversations">
+      <p id="search-source" role="status" class="muted" hidden></p>
+      <div class="conversation-filters">
+        <select id="platform-filter" data-i18n-aria="platformFilter"><option value="" data-i18n="allPlatforms"></option><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option></select>
+        <div id="folder-list" class="folders" role="group" data-i18n-aria="folders"></div>
+      </div>
+      <input id="multi-select" type="checkbox" hidden>
+      <p id="conversation-count" class="muted" role="status"></p>
+      <div id="conversation-list" class="cards"></div>
+      <div id="batch-toolbar" class="toolbar" hidden>
+        <button id="select-all" data-i18n="selectAll"></button>
+        <button id="batch-move" data-i18n="batchMove"></button>
+        <button id="batch-export" data-i18n="batchExport"></button>
+        <span id="selected-count"></span>
+        <button id="exit-multi-select" data-i18n-aria="exitMultiSelect">✕</button>
+      </div>
+    </section>
+    <section id="prompts" role="tabpanel" aria-labelledby="tab-prompts" hidden>
+      <div class="toolbar"><button id="add-prompt" class="primary" data-i18n="addPrompt"></button></div>
+      <p id="prompt-menu-hint" class="muted compact-hint"></p>
+      <input id="prompt-search" type="search" data-i18n-placeholder="searchPrompts" data-i18n-aria="searchPrompts">
+      <select id="prompt-tag" data-i18n-aria="tags"></select>
+      <div id="prompt-list" class="cards"></div>
+    </section>
+    <section id="qa" role="tabpanel" aria-labelledby="tab-qa" hidden>
+      <section class="qa-section" aria-labelledby="qa-heading">
+      <h2 id="qa-heading" data-i18n="qa"></h2>
+      <p class="muted compact-hint" data-i18n="localPrivacyShort"></p>
+      <label class="field"><span data-i18n="qaQuestion"></span><textarea id="qa-question" data-i18n-placeholder="qaPlaceholder"></textarea></label>
+      <label class="field"><span data-i18n="qaScope"></span><select id="qa-scope"><option value="all" data-i18n="all"></option><option value="platform" data-i18n="qaCurrentPlatform"></option><option value="folder" data-i18n="qaCurrentFolder"></option><option value="pinned" data-i18n="pinned"></option></select></label>
+      <div class="toolbar"><button id="qa-ask" class="primary" data-i18n="qaAsk"></button><button id="qa-new" data-i18n="qaNew"></button></div>
+      <p id="qa-hint" role="status" class="muted" hidden></p>
+      <p id="qa-view-question"></p><p id="qa-info" class="muted"></p>
+      <div id="qa-answer" class="summary-text" aria-live="polite"></div>
+      <p id="qa-coverage" class="muted" hidden></p>
+      <button id="qa-download" hidden></button>
+      <div id="qa-sources"></div>
+      <details id="qa-history-toggle" hidden><summary data-i18n="qaRecent"></summary><div id="qa-history" class="cards"></div><button id="qa-clear" class="danger" data-i18n="qaClear"></button></details>
+      </section>
+      <section class="qa-section" aria-labelledby="digest-heading">
+        <h2 id="digest-heading" data-i18n="digestTitle"></h2>
+        <p class="muted compact-hint" data-i18n="digestHelpShort"></p>
+        <label><input id="digest-auto" type="checkbox"><span data-i18n="digestAuto"></span></label>
+        <div class="toolbar"><button id="digest-last" data-i18n="digestLast"></button><button id="digest-current" data-i18n="digestCurrent"></button></div>
+        <p id="digest-empty" class="empty-state" data-i18n="digestListEmpty" hidden></p>
+        <div id="digest-list" class="cards"></div>
+        <p id="digest-info" class="muted"></p>
+        <div id="digest-answer" class="summary-text" aria-live="polite"></div>
+        <div id="digest-actions" class="toolbar" hidden><button id="digest-regenerate" data-i18n="digestRegenerate"></button><button id="digest-delete" class="danger" data-i18n="delete"></button></div>
+      </section>
+    </section>
+    <section id="settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <section class="settings-section">
+        <h2><button id="settings-general-toggle" class="settings-toggle" type="button" data-settings-section="general" aria-expanded="false" aria-controls="settings-general-body"><span id="general-heading" data-i18n="settingsGeneral"></span><span id="settings-general-status" class="settings-summary muted"></span></button></h2>
+        <div id="settings-general-body" class="settings-body" role="region" aria-labelledby="general-heading" hidden>
+      <label class="field"><span data-i18n="language"></span><select id="language"><option value="zh-TW" data-i18n="zhTW"></option><option value="en" data-i18n="en"></option></select></label>
+      <form id="delay-form" class="toolbar">
+        <label class="field grow"><span data-i18n="syncDelay"></span><input id="sync-delay" type="number" min="1000" step="1" required></label>
+        <button type="submit" data-i18n="save"></button>
+      </form>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2><button id="settings-llm-toggle" class="settings-toggle" type="button" data-settings-section="llm" aria-expanded="false" aria-controls="settings-llm-body"><span id="llm-heading" data-i18n="settingsLLM"></span><span id="settings-llm-status" class="settings-summary muted"></span></button></h2>
+        <div id="settings-llm-body" class="settings-body" role="region" aria-labelledby="llm-heading" hidden>
+      <form id="llm-form">
+        <label class="field"><span data-i18n="llmBaseUrl"></span><input id="llm-base-url" type="url" required></label>
+        <label class="field"><span data-i18n="llmApiKey"></span><input id="llm-api-key" type="password" autocomplete="off"></label>
+        <button id="llm-test" type="button" data-i18n="llmTest"></button>
+        <p id="llm-status" role="status"></p>
+        <label class="field"><span data-i18n="llmChatModel"></span><select id="llm-chat-model"></select></label>
+        <label class="field"><span data-i18n="llmEmbeddingModel"></span><select id="llm-embedding-model"></select></label>
+        <label class="check"><input id="llm-disable-thinking" type="checkbox"><span data-i18n="llmDisableThinking"></span></label>
+        <button type="submit" data-i18n="save"></button>
+      </form>
+      <p id="vector-stats" role="status"></p>
+      <div class="toolbar"><button id="build-index" data-i18n="buildIndex"></button></div>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2><button id="settings-backfill-toggle" class="settings-toggle" type="button" data-settings-section="backfill" aria-expanded="false" aria-controls="settings-backfill-body"><span id="backfill-heading" data-i18n="backfillTitle"></span><span id="settings-backfill-status" class="settings-summary muted"></span></button></h2>
+        <div id="settings-backfill-body" class="settings-body" role="region" aria-labelledby="backfill-heading" hidden>
+        <p class="muted" data-i18n="backfillExplanation"></p>
+        <p data-i18n="backfillScope"></p>
+        <label class="check"><input id="backfill-enabled" type="checkbox"><span data-i18n="backfillEnabled"></span></label>
+        <label class="field"><span data-i18n="backfillLimit"></span><input id="backfill-limit" type="number" min="1" max="100" step="1" required></label>
+        <p id="backfill-stats" role="status" aria-live="polite"></p>
+        <p id="backfill-last"></p>
+        <p id="backfill-paused" class="muted"></p>
+        <div class="toolbar"><button id="backfill-pause" data-i18n="backfillPause"></button><button id="backfill-resume" data-i18n="backfillResume"></button></div>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2><button id="settings-vault-toggle" class="settings-toggle" type="button" data-settings-section="vault" aria-expanded="false" aria-controls="settings-vault-body"><span id="vault-heading" data-i18n="vaultTitle"></span><span id="settings-vault-status" class="settings-summary muted"></span></button></h2>
+        <div id="settings-vault-body" class="settings-body" role="region" aria-labelledby="vault-heading" hidden>
+        <p class="muted" data-i18n="vaultHint"></p>
+        <button id="vault-choose" data-i18n="vaultChoose"></button>
+        <p id="vault-name"></p>
+        <label class="field"><span data-i18n="vaultRoot"></span><input id="vault-root" type="text" maxlength="80" required></label>
+        <label class="field"><span data-i18n="vaultScope"></span><select id="vault-scope"><option value="pinnedOrFiled" data-i18n="vaultPinnedOrFiled"></option><option value="all" data-i18n="vaultAll"></option><option value="withContent" data-i18n="vaultWithContent"></option></select></label>
+        <div class="toolbar"><button id="vault-export" class="primary" data-i18n="vaultExport"></button><button id="vault-forget" data-i18n="vaultForget"></button></div>
+        <p id="vault-fallback" class="muted" data-i18n="vaultFallback" hidden></p>
+        <button id="vault-zip" data-i18n="vaultZip" hidden></button>
+        <p id="vault-report" role="status" aria-live="polite"></p>
+        <details id="vault-skipped" hidden></details>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2><button id="settings-diagnostics-toggle" class="settings-toggle" type="button" data-settings-section="diagnostics" aria-expanded="false" aria-controls="settings-diagnostics-body"><span id="diagnostics-heading" data-i18n="diagnostics"></span><span id="settings-diagnostics-status" class="settings-summary muted"></span></button></h2>
+        <div id="settings-diagnostics-body" class="settings-body" role="region" aria-labelledby="diagnostics-heading" hidden>
+      <p class="muted" data-i18n="diagnosticReadOnly"></p>
+      <div class="toolbar"><button id="diagnostic-run" data-i18n="diagnosticRun"></button><button id="diagnostic-copy" data-i18n="diagnosticCopy" disabled></button></div>
+      <ul id="diagnostic-results" class="cards" aria-live="polite" data-i18n-aria="diagnostics"></ul>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h2><button id="settings-data-toggle" class="settings-toggle" type="button" data-settings-section="data" aria-expanded="false" aria-controls="settings-data-body"><span id="data-heading" data-i18n="settingsData"></span><span id="settings-data-status" class="settings-summary muted"></span></button></h2>
+        <div id="settings-data-body" class="settings-body" role="region" aria-labelledby="data-heading" hidden>
+      <button id="backup" data-i18n="backup"></button>
+      <label class="field"><span data-i18n="file"></span><input id="backup-file" type="file" accept=".json,application/json"></label>
+      <label class="field"><span data-i18n="importMode"></span><select id="import-mode"><option value="merge" data-i18n="merge"></option><option value="overwrite" data-i18n="overwrite"></option></select></label>
+      <button id="import-backup" data-i18n="importBackup"></button>
+      <hr>
+      <div id="platform-stats"></div>
+      <button id="clear-cache" class="danger" data-i18n="clearCache"></button>
+      <button id="clear-index" data-i18n="clearIndex"></button>
+      <p class="muted" data-i18n="privacy"></p>
+        </div>
+      </section>
+    </section>
+  </main>
+  <dialog id="suggestion-review"><h2 data-i18n="reviewSuggestions"></h2><p data-i18n="reviewHint"></p><div class="toolbar"><button id="review-all" data-i18n="selectAll"></button><button id="review-none" data-i18n="selectNone"></button><label class="check"><input id="review-sync-all" type="checkbox"><span data-i18n="syncAllTitles"></span></label></div><div id="review-items"></div><p id="review-error" role="alert"></p><div class="toolbar"><button id="review-close" data-i18n="cancel"></button><button id="review-apply" data-i18n="applySelected"></button></div></dialog>
+  <dialog id="editor"><form id="editor-form"><h2 id="editor-title"></h2><p id="editor-message"></p><div id="editor-fields"></div><p id="editor-error" role="alert"></p><div class="toolbar"><button id="editor-cancel" type="button" data-i18n="cancel"></button><button id="editor-save" type="submit" class="primary" data-i18n="save"></button></div></form></dialog>
+</body>
+</html>

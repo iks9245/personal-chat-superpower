@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Personal Chat Superpower",
+  "description": "本機優先的 ChatGPT 與 Claude 對話管理、Prompt 庫、搜尋與匯出。",
+  "version": "0.4.0",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "unlimitedStorage", "sidePanel", "alarms"],
+  "host_permissions": ["https://chatgpt.com/*", "https://claude.ai/*", "http://127.0.0.1/*", "http://localhost/*", "https://127.0.0.1/*", "https://localhost/*", "http://[::1]/*", "https://[::1]/*"],
+  "background": { "service_worker": "src/background/service-worker.js" },
+  "side_panel": { "default_path": "src/sidepanel/index.html" },
+  "action": {
+    "default_title": "Personal Chat Superpower",
+    "default_icon": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" }
+  },
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src https://chatgpt.com https://claude.ai http://127.0.0.1:* http://localhost:* https://127.0.0.1:* https://localhost:*; base-uri 'none'"
+  },
+  "content_scripts": [{
+    "matches": ["https://chatgpt.com/*"],
+    "run_at": "document_idle",
+    "js": [
+      "src/shared/ns.js",
+      "src/shared/i18n.js",
+      "src/shared/storage.js",
+      "src/shared/prompt-vars.js",
+      "src/shared/platforms.js",
+      "src/shared/conversation.js",
+      "src/content/composer.js",
+      "src/content/adapters/chatgpt.js",
+      "src/content/prompt-palette.js",
+      "src/content/main.js"
+    ]
+  }, {
+    "matches": ["https://claude.ai/*"],
+    "run_at": "document_idle",
+    "js": [
+      "src/shared/ns.js",
+      "src/shared/i18n.js",
+      "src/shared/storage.js",
+      "src/shared/prompt-vars.js",
+      "src/shared/platforms.js",
+      "src/shared/conversation.js",
+      "src/content/composer.js",
+      "src/content/adapters/claude.js",
+      "src/content/prompt-palette.js",
+      "src/content/main.js"
+    ]
+  }]
+}
