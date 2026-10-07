@@ -236,7 +236,7 @@ test('diagnostic UI renders rows/fixes, counts current model data, copies only a
   assert.match(text, /目前 Embedding 模型的向量 · \d+ms · 數量：1/);
   assert.match(text, /本機資料夾 · \d+ms · 數量：1/); assert.match(h.node('#settings').textContent, /改名不測試，因為會寫入網站/);
   await h.node('#diagnostic-copy').emit('click'); assert.equal(h.copied.length, 1);
-  const report = h.copied[0]; assert.match(report, /^Personal Chat Superpower 0\.4\.0 · Chrome 130 · \d{4}-\d{2}-\d{2} \d{2}:\d{2}/);
+  const report = h.copied[0]; assert.match(report, new RegExp(`^Personal Chat Superpower ${require('../manifest.json').version.replace(/\./g, '\\.')} · Chrome 130 · \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}`));
   assert.match(report, /❌ chatgpt.search fail 404 \(requestFailed\) 312ms → src\/content\/adapters\/chatgpt.js → searchConversations/);
   assert.match(report, /data.backfill ok \d+ms enabled=0 today=0 remaining=0/);
   for (const secret of h.secrets) { assert.ok(!report.includes(secret), secret); assert.ok(!text.includes(secret), secret); }

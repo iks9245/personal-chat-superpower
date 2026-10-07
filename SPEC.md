@@ -74,7 +74,7 @@ README.md            # 安裝與使用說明（繁中）
 
 - `manifest_version: 3`，`name`/`description` 中英皆可（固定字串即可）。
 - `permissions`: `["storage", "unlimitedStorage", "sidePanel", "alarms"]`
-- `host_permissions`: `https://chatgpt.com/*`、`https://claude.ai/*` 及僅 `127.0.0.1`、`localhost`、`[::1]` 的 HTTP/HTTPS match patterns（任意 port）；version `0.4.0`。`extension_pages` CSP connect-src 加入 `http://127.0.0.1:* http://localhost:* https://127.0.0.1:* https://localhost:*`。
+- `host_permissions`: `https://chatgpt.com/*`、`https://claude.ai/*` 及僅 `127.0.0.1`、`localhost`、`[::1]` 的 HTTP/HTTPS match patterns（任意 port）；version `0.4.1`。`extension_pages` CSP connect-src 加入 `http://127.0.0.1:* http://localhost:* https://127.0.0.1:* https://localhost:*`。
 - `background.service_worker`: `src/background/service-worker.js`
 - `side_panel.default_path`: `src/sidepanel/index.html`
 - `content_scripts`: 兩個獨立 entries，分別 matches `https://chatgpt.com/*` 與 `https://claude.ai/*`，`run_at: document_idle`，js 依序：

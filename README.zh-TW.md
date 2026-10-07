@@ -8,7 +8,7 @@
 
 > 非官方專案，與 OpenAI、Anthropic 無關。擴充功能讀取的是 ChatGPT／Claude 網頁版的非公開介面，可能隨時失效；這類程式化存取可能違反相關服務條款，請自行評估風險後使用。
 
-為 ChatGPT 與 Claude 加上本機對話資料夾、標籤、釘選、Prompt 庫、全文搜尋、本機對話問答（local RAG）、匯出、oMLX 本地 LLM 輔助與自選背景補摘要（v0.4.0）。使用 Manifest V3、純 JavaScript classic scripts；零第三方依賴、無建置步驟。預設繁體中文，可即時切換 English。
+為 ChatGPT 與 Claude 加上本機對話資料夾、標籤、釘選、Prompt 庫、全文搜尋、本機對話問答（local RAG）、匯出、oMLX 本地 LLM 輔助與自選背景補摘要（v0.4.1）。使用 Manifest V3、純 JavaScript classic scripts；零第三方依賴、無建置步驟。預設繁體中文，可即時切換 English。
 
 <table>
   <tr>

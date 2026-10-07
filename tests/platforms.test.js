@@ -18,7 +18,7 @@ test('platformOfKey returns the prefix before the first colon', () => {
 test('manifest loads each platform adapter after shared dependencies and the panel loads no adapter', () => {
   const fs = require('node:fs'), path = require('node:path'), root = path.join(__dirname, '..');
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.version, '0.4.0'); assert.equal(manifest.content_scripts.length, 2);
+  assert.match(manifest.version, /^\d+\.\d+\.\d+$/); // exact value is enforced by the release workflow (tag must equal manifest version) assert.equal(manifest.content_scripts.length, 2);
   assert.deepEqual(manifest.host_permissions, ['https://chatgpt.com/*', 'https://claude.ai/*', 'http://127.0.0.1/*', 'http://localhost/*', 'https://127.0.0.1/*', 'https://localhost/*', 'http://[::1]/*', 'https://[::1]/*']);
   for (const entry of manifest.content_scripts) {
     const platform = platformForUrl(entry.matches[0]);
